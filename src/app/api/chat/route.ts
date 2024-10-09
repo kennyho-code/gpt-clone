@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import langchainApp, { getChatHistory } from "@/services/langchain/langchain";
+import langchainApp from "@/services/langchain/langchain";
 
 export async function POST(request: NextRequest) {
   const { message: inputMessage } = await request.json();
@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
   };
 
   const result = await langchainApp.invoke({ messages: inputMessage }, config);
+
   const messages = result.messages;
   const responseMesssage = messages.at(-1).content;
 
@@ -17,17 +18,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const sessionId = url.searchParams.get("sessionId");
-  if (!sessionId) {
+  const threadId = url.searchParams.get("threadId");
+  if (!threadId) {
     return NextResponse.json(
       { message: "sessionId not found" },
       { status: 400 },
     );
   }
 
-  const chatHistory = getChatHistory(sessionId);
-
-  console.log("chatHistory", chatHistory);
+  const config = {
+    configurable: { thread_id: "1" },
+  };
+  const chatState = await langchainApp.getState(config);
+  const chatHistory = chatState.values.messages;
 
   return NextResponse.json({ data: { chatHistory } });
 }
