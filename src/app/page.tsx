@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 interface Message {
@@ -8,8 +8,6 @@ interface Message {
   sender: "user" | "bot";
   text: string;
 }
-
-// Sample message data
 
 function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,7 +38,7 @@ function Chat() {
     });
 
     const data = await response.json();
-    const responseText = data.responseMessage.kwargs.content;
+    const responseText = data.responseMesssage;
 
     setMessages([
       ...newUserMessages,
@@ -109,7 +107,7 @@ function ChatInput({
           placeholder="Type a message..."
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              handleSubmit(e);
+              handleSubmit();
             }
           }}
         />
@@ -126,9 +124,3 @@ function ChatInput({
 }
 
 export default Chat;
-function useCallback(
-  arg0: (e: any) => void,
-  arg1: ((e: FormEvent<HTMLButtonElement>) => Promise<void>)[],
-) {
-  throw new Error("Function not implemented.");
-}

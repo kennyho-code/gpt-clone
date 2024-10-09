@@ -18,12 +18,6 @@ const model = new ChatOpenAI({
   temperature: 0,
 });
 
-// const userInvoke = await model.invoke([
-//   { role: "user", content: "Hi! I'm Bob" },
-//   { role: "assistant", content: "Hello Bob! How can I assist you today?" },
-//   { role: "user", content: "What's my name?" },
-// ]);
-
 const prompt = ChatPromptTemplate.fromMessages([
   [
     "system",
@@ -89,3 +83,4 @@ console.log(output.messages);
 
 // const output4 = await app.invoke({ messages: input2 }, config);
 // console.log(output4.messages[output4.messages.length - 1]);
+show me an example of a typescript clsass

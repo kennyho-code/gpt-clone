@@ -1,6 +1,9 @@
 import {
+  Annotation,
   END,
+  MemorySaver,
   MessagesAnnotation,
+  messagesStateReducer,
   START,
   StateGraph,
 } from "@langchain/langgraph";
@@ -11,40 +14,14 @@ import {
 
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import createModel from "./createModel";
+import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 
-// In Memory Storage
-const chatsBySessionId: Record<string, InMemoryChatMessageHistory> = {};
-export const getChatHistory = (sessionId: string) => {
-  let chatHistory: InMemoryChatMessageHistory | undefined =
-    chatsBySessionId[sessionId];
-  if (!chatHistory) {
-    console.log("no chat history", typeof sessionId);
-    chatHistory = new InMemoryChatMessageHistory();
-    chatsBySessionId[sessionId] = chatHistory;
-  }
-  return chatHistory;
-};
+// Define the State interface
 
-const callModel = async (
-  state: typeof MessagesAnnotation.State,
-  config: RunnableConfig,
-): Promise<Partial<typeof MessagesAnnotation.State>> => {
-  if (!config.configurable?.sessionId) {
-    throw new Error(
-      "Make sure that the config includes the following information: {'configurable': {'sessionId': 'some_value'}}",
-    );
-  }
-  const chatHistory = getChatHistory(config.configurable.sessionId as string);
-  const messages = [...(await chatHistory.getMessages()), ...state.messages];
-  const chainWithHistory = new RunnableWithMessageHistory({
-    runnable: createModel(),
-    getMessageHistory: getChatHistory,
-    inputMessagesKey: "question",
-    historyMessagesKey: "history",
-  });
-  const question = messages[messages.length - 1];
-  const aiMessage = await chainWithHistory.invoke({ question });
-  return { messages: [aiMessage] };
+const callModel = async (state: typeof MessagesAnnotation.State) => {
+  const model = createModel();
+  const response = await model.invoke(state);
+  return { messages: [response] };
 };
 
 const workflow = new StateGraph(MessagesAnnotation)
@@ -52,6 +29,7 @@ const workflow = new StateGraph(MessagesAnnotation)
   .addEdge(START, "model")
   .addEdge("model", END);
 
-const app = workflow.compile();
+const memory = new MemorySaver();
+const app = workflow.compile({ checkpointer: memory });
 
 export default app;

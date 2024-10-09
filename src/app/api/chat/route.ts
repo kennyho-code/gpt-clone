@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import langchainApp, { getChatHistory } from "@/services/langchain/langchain";
-import { HumanMessage } from "@langchain/core/messages";
 
 export async function POST(request: NextRequest) {
   const { message: inputMessage } = await request.json();
 
   const config = {
-    configurable: { sessionId: "1" },
+    configurable: { thread_id: "1" },
   };
 
-  const response = await langchainApp.invoke(
-    { messages: [inputMessage] },
-    config,
-  );
-  const messages = response.messages;
-  const responseMessage = messages.at(-1);
-  return NextResponse.json({ message: "success", responseMessage });
+  const result = await langchainApp.invoke({ messages: inputMessage }, config);
+  const messages = result.messages;
+  const responseMesssage = messages.at(-1).content;
+
+  return NextResponse.json({ message: "success", responseMesssage });
 }
 
 export async function GET(request: NextRequest) {
