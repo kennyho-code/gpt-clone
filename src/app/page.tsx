@@ -1,20 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { getChatHistory } from "@/services/langchain/langchain";
+import { FormEvent, useEffect, useState } from "react";
 
-function Page() {
-  return (
-    <div className="bg-gray-100 h-screen">
-      <div className="mx-auto w-full max-w-[750px]">
-        <ChatMessages />
-        <ChatInput />
-      </div>
-    </div>
-  );
+interface Message {
+  id: number;
+  sender: "user" | "bot";
+  text: string;
 }
 
 // Sample message data
-const messages = [
+const defaultMessages: Message[] = [
   { id: 1, text: "Hello! How can I help you today?", sender: "bot" },
   { id: 2, text: "I have a question about my account.", sender: "user" },
   {
@@ -40,7 +36,31 @@ const messages = [
   },
 ];
 
-const ChatMessages = () => {
+async function getMessageHistory(sessionId: string) {
+  const chatHistory = await getChatHistory(sessionId);
+  return chatHistory;
+  console.log(chatHistory);
+}
+
+function Chat() {
+  const [messages, setMessages] = useState(defaultMessages);
+  useEffect(() => {
+    const chatHistory = async function callGetMessageHistory() {
+      await getMessageHistory("1");
+    };
+    console.log("chatHistory, ", chatHistory);
+  }, []);
+  return (
+    <div className="bg-gray-100 h-screen">
+      <div className="mx-auto w-full max-w-[750px]">
+        <ChatMessages messages={messages} />
+        <ChatInput />
+      </div>
+    </div>
+  );
+}
+
+const ChatMessages = ({ messages }: { messages: Message[] }) => {
   return (
     <div className="flex flex-col gap-6 p-5 mb-16">
       {/* mb-16 to account for input box */}
@@ -71,8 +91,17 @@ interface ChatInputProps {
 function ChatInput() {
   const [inputValue, setInputValue] = useState("");
 
-  function handleSubmit() {
-    console.log("inputValue:", inputValue);
+  async function handleSubmit(e: FormEvent<HTMLButtonElement>) {
+    console.log("hello");
+    e.preventDefault();
+    const response = await fetch("http://localhost:3000/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: inputValue }),
+    });
+    console.log("response: ", await response.json());
   }
 
   return (
@@ -86,7 +115,7 @@ function ChatInput() {
           placeholder="Type a message..."
         />
         <button
-          onSubmit={handleSubmit}
+          onClick={handleSubmit}
           className="absolute right-3 top-1/2 transform -translate-y-1/2"
         >
           <div className="p-2">🔘</div>
@@ -96,4 +125,4 @@ function ChatInput() {
   );
 }
 
-export default Page;
+export default Chat;
