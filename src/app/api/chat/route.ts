@@ -1,30 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import langchainApp, { getChatHistory } from "@/services/langchain/langchain";
+import { HumanMessage } from "@langchain/core/messages";
 
 export async function POST(request: NextRequest) {
   const { message: inputMessage } = await request.json();
 
   const config = {
     configurable: { sessionId: "1" },
-    streamMode: "values" as const,
   };
 
-  for await (const event of await langchainApp.stream(
+  const response = await langchainApp.invoke(
     { messages: [inputMessage] },
     config,
-  )) {
-    const lastMessage = event.messages[event.messages.length - 1];
-    console.log(lastMessage.content);
-  }
-
-  return NextResponse.json({ message: "success" });
+  );
+  const messages = response.messages;
+  const responseMessage = messages.at(-1);
+  return NextResponse.json({ message: "success", responseMessage });
 }
 
 export async function GET(request: NextRequest) {
-  const { sessionId } = await request.json();
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get("sessionId");
+  if (!sessionId) {
+    return NextResponse.json(
+      { message: "sessionId not found" },
+      { status: 400 },
+    );
+  }
 
-  const chatHistory = await getChatHistory(sessionId);
+  const chatHistory = getChatHistory(sessionId);
 
-  console.log("chatHistory: ", chatHistory);
-  return NextResponse.json({ message: "success" });
+  console.log("chatHistory", chatHistory);
+
+  return NextResponse.json({ data: { chatHistory } });
 }

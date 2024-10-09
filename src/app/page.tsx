@@ -1,61 +1,63 @@
 "use client";
 
-import { getChatHistory } from "@/services/langchain/langchain";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 interface Message {
-  id: number;
+  id: string;
   sender: "user" | "bot";
   text: string;
 }
 
 // Sample message data
-const defaultMessages: Message[] = [
-  { id: 1, text: "Hello! How can I help you today?", sender: "bot" },
-  { id: 2, text: "I have a question about my account.", sender: "user" },
-  {
-    id: 3,
-    text: "Sure, I'd be happy to help. What specifically would you like to know about your account?",
-    sender: "bot",
-  },
-  {
-    id: 4,
-    text: "I can't seem to change my password. Can you guide me through the process?",
-    sender: "user",
-  },
-  {
-    id: 5,
-    text: "Of course! To change your password, follow these steps:\n1. Go to Settings\n2. Click on 'Security'\n3. Select 'Change Password'\n4. Enter your current password, then your new password twice\n5. Click 'Save Changes'",
-    sender: "bot",
-  },
-  { id: 6, text: "Thank you! I'll try that now.", sender: "user" },
-  {
-    id: 7,
-    text: "You're welcome! Let me know if you need any further assistance.",
-    sender: "bot",
-  },
-];
-
-async function getMessageHistory(sessionId: string) {
-  const chatHistory = await getChatHistory(sessionId);
-  return chatHistory;
-  console.log(chatHistory);
-}
 
 function Chat() {
-  const [messages, setMessages] = useState(defaultMessages);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
-    const chatHistory = async function callGetMessageHistory() {
-      await getMessageHistory("1");
-    };
-    console.log("chatHistory, ", chatHistory);
-  }, []);
+    scrollToBottom();
+  }, [messages]);
+
+  async function handleAddMessage(inputValue: string) {
+    const newUserMessages = [
+      ...messages,
+      { id: uuidv4().toString(), sender: "user", text: inputValue },
+    ] as Message[];
+    setMessages(newUserMessages);
+
+    const response = await fetch("http://localhost:3000/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: inputValue }),
+    });
+
+    const data = await response.json();
+    const responseText = data.responseMessage.kwargs.content;
+
+    setMessages([
+      ...newUserMessages,
+      { id: uuidv4().toString(), sender: "bot", text: responseText },
+    ]);
+  }
   return (
-    <div className="bg-gray-100 h-screen">
-      <div className="mx-auto w-full max-w-[750px]">
+    <div className="bg-gray-100 h-screen overflow-y-auto">
+      <div className="mx-auto max-w-[750px] ">
         <ChatMessages messages={messages} />
-        <ChatInput />
+        <ChatInput
+          addMessage={(inputValue) => {
+            handleAddMessage(inputValue);
+          }}
+        />
       </div>
+      <div ref={messagesEndRef} />
     </div>
   );
 }
@@ -84,28 +86,20 @@ const ChatMessages = ({ messages }: { messages: Message[] }) => {
   );
 };
 
-interface ChatInputProps {
-  onSubmit: () => void;
-}
-
-function ChatInput() {
+function ChatInput({
+  addMessage,
+}: {
+  addMessage: (inputValue: string) => void;
+}) {
   const [inputValue, setInputValue] = useState("");
 
-  async function handleSubmit(e: FormEvent<HTMLButtonElement>) {
-    console.log("hello");
-    e.preventDefault();
-    const response = await fetch("http://localhost:3000/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: inputValue }),
-    });
-    console.log("response: ", await response.json());
+  async function handleSubmit() {
+    addMessage(inputValue);
+    setInputValue("");
   }
 
   return (
-    <div className="w-full fixed bottom-0 left-0 right-0 p-4 flex justify-center">
+    <div className="w-full fixed bottom-0 left-0 right-0 p-4 flex justify-center bg-gray-100">
       <div className="relative w-full max-w-[650px]">
         <input
           value={inputValue}
@@ -113,8 +107,14 @@ function ChatInput() {
           type="text"
           className="w-full p-4 pr-12 bg-gray-50 border-2 rounded-lg"
           placeholder="Type a message..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSubmit(e);
+            }
+          }}
         />
         <button
+          type="submit"
           onClick={handleSubmit}
           className="absolute right-3 top-1/2 transform -translate-y-1/2"
         >
@@ -126,3 +126,9 @@ function ChatInput() {
 }
 
 export default Chat;
+function useCallback(
+  arg0: (e: any) => void,
+  arg1: ((e: FormEvent<HTMLButtonElement>) => Promise<void>)[],
+) {
+  throw new Error("Function not implemented.");
+}

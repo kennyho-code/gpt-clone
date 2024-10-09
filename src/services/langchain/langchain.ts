@@ -18,6 +18,7 @@ export const getChatHistory = (sessionId: string) => {
   let chatHistory: InMemoryChatMessageHistory | undefined =
     chatsBySessionId[sessionId];
   if (!chatHistory) {
+    console.log("no chat history", typeof sessionId);
     chatHistory = new InMemoryChatMessageHistory();
     chatsBySessionId[sessionId] = chatHistory;
   }
@@ -51,4 +52,6 @@ const workflow = new StateGraph(MessagesAnnotation)
   .addEdge(START, "model")
   .addEdge("model", END);
 
-export default workflow.compile();
+const app = workflow.compile();
+
+export default app;
